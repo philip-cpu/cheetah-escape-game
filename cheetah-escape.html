@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cheetah's Great Zoo Escape!</title>
+  <!-- retro pixel font from Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    /* Reset & Base Styles */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: #f8bbd0; /* Soft baby pink */
+      color: #2c3e50;
+      font-family: 'Press Start 2P', monospace;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #81c784; /* Soft meadow green background under the grid */
+    }
+
+    canvas {
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Screen Overlays (Start, Caught, Level Clear, Total Victory) */
+    .overlay-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(252, 228, 236, 0.94); /* Pretty pink translucent overlay */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .overlay-screen.hidden {
+      display: none !important;
+    }
+
+    /* Titles with bubblegum styling */
+    h1 {
+      font-size: 24px;
+      line-height: 1.4;
+      color: #ff4081; /* Vibrant Pink */
+      text-shadow: 4px 4px 0px #f8bbd0, 0 0 15px rgba(255, 64, 129, 0.4);
+      margin-bottom: 24px;
+      animation: floatTitle 3s ease-in-out infinite alternate;
+      max-width: 850px;
+    }
+
+    @keyframes floatTitle {
+      0% { transform: translateY(0px) rotate(-1deg); }
+      100% { transform: translateY(-8px) rotate(1deg); }
+    }
+
+    .instructions {
+      font-size: 11px;
+      line-height: 1.8;
+      color: #4a148c; /* Dark Purple */
+      margin-bottom: 30px;
+      max-width: 600px;
+      background: #fdf2f8; /* Soft pink-white card */
+      padding: 18px;
+      border: 6px dashed #ff80ab;
+      border-radius: 12px;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.05);
+    }
+
+    .instructions span {
+      color: #d81b60;
+      font-weight: bold;
+    }
+
+    .instructions strong {
+      color: #2e7d32; /* Rich Green */
+    }
+
+    /* Girly / Retro Minecraft buttons */
+    .btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 14px;
+      color: white;
+      background-color: #ff4081; /* Hot pink */
+      border: 5px solid #c2185b;
+      border-bottom: 9px solid #c2185b;
+      padding: 16px 32px;
+      cursor: pointer;
+      box-shadow: 0 5px 0 rgba(0,0,0,0.15);
+      outline: none;
+      transition: all 0.05s ease;
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+
+    .btn:hover {
+      background-color: #ff5c93;
+      transform: translateY(-2px);
+      border-bottom-width: 11px;
+    }
+
+    .btn:active {
+      transform: translateY(4px);
+      border-bottom-width: 5px;
+      box-shadow: 0 2px 0 rgba(0,0,0,0.1);
+    }
+
+    /* Start button emerald green variant */
+    #start-btn {
+      background-color: #2ecc71;
+      border-color: #27ae60;
+    }
+    #start-btn:hover {
+      background-color: #58d68d;
+    }
+
+    /* Next Level button warm yellow variant */
+    #level-clear-btn {
+      background-color: #ffb300;
+      border-color: #ff8f00;
+    }
+    #level-clear-btn:hover {
+      background-color: #ffca28;
+    }
+
+    /* Custom Screen overrides */
+    #gameover-screen h1 {
+      color: #e53935; /* Caught Red */
+      text-shadow: 4px 4px 0px #ffcdd2, 0 0 15px rgba(229, 57, 53, 0.4);
+    }
+
+    #victory-screen h1 {
+      color: #ffb300; /* Gold */
+      text-shadow: 4px 4px 0px #ffe082, 0 0 15px rgba(255, 179, 0, 0.4);
+      animation: victoryPulse 1.5s infinite alternate;
+    }
+
+    @keyframes victoryPulse {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.08); }
+    }
+
+    .praise-text {
+      font-size: 14px;
+      color: #c2185b;
+      margin-top: 10px;
+      margin-bottom: 25px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* HUD Top Bar Styling */
+    #hud {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .hud-row {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .hud-panel {
+      background-color: rgba(253, 228, 236, 0.95); /* Translucent soft pink */
+      border: 4px solid #ff4081;
+      padding: 10px 14px;
+      color: #880e4f;
+      font-size: 10px;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 8px;
+    }
+
+    #timer-panel.warning {
+      border-color: #e53935;
+      color: #e53935;
+      animation: warningBlink 0.5s infinite alternate;
+    }
+
+    @keyframes warningBlink {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.06); }
+    }
+
+    .hud-icon {
+      font-size: 14px;
+    }
+
+    /* Progress bar of the escape */
+    #progress-container {
+      width: 100%;
+      height: 16px;
+      background: #f8bbd0;
+      border: 3px solid #ff4081;
+      border-radius: 10px;
+      position: relative;
+      overflow: visible;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.1);
+    }
+
+    #progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ff80ab, #ff4081);
+      border-radius: 6px;
+      transition: width 0.1s linear;
+    }
+
+    #progress-marker {
+      position: absolute;
+      top: -6px;
+      left: 0%;
+      font-size: 18px;
+      transform: translateX(-50%);
+      transition: left 0.1s linear;
+    }
+
+    /* Mobile virtual controls (D-Pad) */
+    #mobile-controls {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      width: 150px;
+      height: 150px;
+      z-index: 5;
+      display: none; /* Auto shown on touch devices */
+    }
+
+    .dpad {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .dpad-btn {
+      position: absolute;
+      width: 48px;
+      height: 48px;
+      background-color: rgba(253, 228, 236, 0.95);
+      border: 3px solid #ff4081;
+      border-bottom: 6px solid #c2185b;
+      color: #880e4f;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      cursor: pointer;
+      touch-action: none;
+    }
+
+    .dpad-btn:active {
+      background-color: #f8bbd0;
+      border-bottom-width: 3px;
+      transform: translateY(3px);
+    }
+
+    .dpad-up { top: 0; left: 51px; }
+    .dpad-left { top: 51px; left: 0; }
+    .dpad-right { top: 51px; left: 102px; }
+    .dpad-down { top: 102px; left: 51px; }
+
+    /* Sound mute toggle */
+    #sound-toggle {
+      position: absolute;
+      top: 85px;
+      right: 16px;
+      background-color: rgba(253, 228, 236, 0.95);
+      border: 4px solid #ff4081;
+      color: #880e4f;
+      padding: 8px 12px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      cursor: pointer;
+      z-index: 5;
+      border-radius: 8px;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.1);
+    }
+
+    #sound-toggle:hover {
+      background-color: #f8bbd0;
+    }
+
+    /* Small download note style in menu */
+    .download-note {
+      font-size: 8px;
+      color: #880e4f;
+      margin-top: 30px;
+      line-height: 1.4;
+      max-width: 500px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    
+    <!-- HUD Panel (Top stats) -->
+    <div id="hud">
+      <div class="hud-row">
+        <div id="level-panel" class="hud-panel">
+          <span class="hud-icon">🐾</span>
+          <span id="level-text">LEVEL: 1/3</span>
+        </div>
+        <div id="status-panel" class="hud-panel">
+          <span class="hud-icon">⚡</span>
+          <span id="status-text">STATUS: RUNNING</span>
+        </div>
+        <div id="timer-panel" class="hud-panel">
+          <span class="hud-icon">⏱️</span>
+          <span id="timer-text">TIME: 60s</span>
+        </div>
+      </div>
+
+      <!-- Escape Progress Tracker -->
+      <div id="progress-container">
+        <div id="progress-fill"></div>
+        <div id="progress-marker">🐆</div>
+      </div>
+    </div>
+
+    <!-- Mute sound button -->
+    <button id="sound-toggle">SOUND: ON</button>
+
+    <!-- HTML5 canvas for rendering game graphics -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- On-screen D-pad buttons for iPad or tablets -->
+    <div id="mobile-controls">
+      <div class="dpad">
+        <div class="dpad-btn dpad-up" data-dir="up">▲</div>
+        <div class="dpad-btn dpad-left" data-dir="left">◀</div>
+        <div class="dpad-btn dpad-right" data-dir="right">▶</div>
+        <div class="dpad-btn dpad-down" data-dir="down">▼</div>
+      </div>
+    </div>
+
+    <!-- START SCREEN -->
+    <div id="start-screen" class="overlay-screen">
+      <h1>CHEETAH'S GREAT ZOO ESCAPE! 🐆✨</h1>
+      <div class="instructions">
+        <p>Help our cute, clever <span>Cheetah</span> escape the maze-like zoo and head back to nature!</p>
+        <p style="margin-top: 12px;">🏃 Use <strong>WASD</strong> or <strong>Arrow Keys</strong> to run.</p>
+        <p style="margin-top: 8px;">👨‍🌾 Outsmart the blocky <strong>Zoo-keepers</strong> chasing you!</p>
+        <p style="margin-top: 8px;">🍌 Avoid hidden <strong>Banana Peels</strong> and <strong>Mud Traps</strong> that spin you dizzy!</p>
+        <p style="margin-top: 12px; color: #d81b60;">⏱️ Reach the bright flashing 🚪 <strong>ZOO EXIT</strong> within <strong>60 seconds</strong>!</p>
+      </div>
+      <button class="btn" id="start-btn">ESCAPE ZOO!</button>
+      <div class="download-note">
+        Girl-friendly pixel-art aesthetic. You can also download this complete game workspace snapshot using the 'Download' button in the Environment settings of the AI Studio Playground.
+      </div>
+    </div>
+
+    <!-- CAUGHT / LOSE SCREEN -->
+    <div id="gameover-screen" class="overlay-screen hidden">
+      <h1>CAUGHT! 😭</h1>
+      <div class="instructions" style="margin-bottom: 25px; border-color: #e53935;">
+        <p style="font-size: 13px; color: #b71c1c;">Let's try to escape again! 💕</p>
+        <p style="margin-top: 12px;">The zoo-keepers led you back to your pen, but the gate is still unlocked! Get ready to run again!</p>
+      </div>
+      <button class="btn" id="retry-btn">TRY AGAIN!</button>
+    </div>
+
+    <!-- LEVEL CLEAR SCREEN -->
+    <div id="level-clear-screen" class="overlay-screen hidden">
+      <h1>LEVEL CLEAR! 🏃‍♀️💨</h1>
+      <p class="praise-text" id="praise-msg">Super Fast Cheetah!</p>
+      <div class="instructions" style="margin-bottom: 25px; border-color: #ffb300;">
+        <p style="font-size: 12px; color: #ff8f00;">You outsmarted the zoo-keepers!</p>
+        <p style="margin-top: 12px;">The exit gate was locked, but you slipped through into the next garden zone. Keep going, victory is near!</p>
+      </div>
+      <button class="btn" id="level-clear-btn">NEXT LEVEL</button>
+    </div>
+
+    <!-- GRAND VICTORY SCREEN -->
+    <div id="victory-screen" class="overlay-screen hidden">
+      <h1>FREEDOM! 🎉</h1>
+      <p class="praise-text">🐾 You are the fastest, smartest cheetah ever! 🐾</p>
+      <div class="instructions" style="margin-bottom: 25px; border-color: #2ecc71;">
+        <p style="font-size: 12px; color: #2e7d32; line-height: 1.6;">✨ SUCCESSFUL ESCAPE! ✨</p>
+        <p style="margin-top: 12px;">You successfully navigated all the mazes, avoided all the traps, and left the zoo behind! You are running free in the beautiful wild savanna!</p>
+      </div>
+      <button class="btn" id="victory-btn">PLAY AGAIN</button>
+    </div>
+
+  </div>
+
+  <script>
+    // --- SETUP & CONFIGURATION ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const dpad = document.getElementById('mobile-controls');
+
+    // Prevent right-click and context menus
+    window.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Grid System parameters
+    const TILE_SIZE = 64; // Pixel size of each cell
+    let grid = [];
+    let mazeWidth = 11;
+    let mazeHeight = 11;
+
+    // Game states: 'START', 'PLAY', 'GAMEOVER', 'LEVELCLEAR', 'VICTORY'
+    let gameState = 'START';
+    let currentLevel = 1;
+    let levelTimer = 60; // 60s per level
+    let lastTime = 0;
+    let secondAccumulator = 0;
+    let laserGatesOpen = false;
+    let laserGateTimer = 0;
+    let closeCall = false;
+
+    // Entities
+    let keepers = [];
+    let traps = [];
+    let particles = [];
+    let floatingTexts = [];
+
+    // Sound variables
+    let soundMuted = false;
+    let audioCtx = null;
+
+    // --- SOUND ENGINE (Web Audio API Synthesizer) ---
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playSound(type) {
+      if (soundMuted) return;
+      try {
+        initAudio();
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        const now = audioCtx.currentTime;
+
+        if (type === 'slip') {
+          // Slide whistle slip sound
+          const osc = audioCtx.createOscillator();
+          const gainNode = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(150, now);
+          osc.frequency.exponentialRampToValueAtTime(750, now + 0.15);
+          osc.frequency.exponentialRampToValueAtTime(220, now + 0.45);
+
+          gainNode.gain.setValueAtTime(0.12, now);
+          gainNode.gain.setValueAtTime(0.12, now + 0.2);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+          osc.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.47);
+        } 
+        else if (type === 'alert') {
+          // Keeper warning double beep!
+          [0, 0.08].forEach(delay => {
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(620, now + delay);
+            gainNode.gain.setValueAtTime(0.08, now + delay);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.07);
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            osc.start(now + delay);
+            osc.stop(now + delay + 0.08);
+          });
+        }
+        else if (type === 'tick') {
+          // Warning countdown beep
+          const osc = audioCtx.createOscillator();
+          const gainNode = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(800, now);
+          gainNode.gain.setValueAtTime(0.06, now);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+          osc.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.07);
+        }
+        else if (type === 'win_level') {
+          // Happy level clear fan-fare
+          const notes = [392.00, 523.25, 659.25, 783.99, 1046.50]; // G4, C5, E5, G5, C6
+          notes.forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+            gainNode.gain.setValueAtTime(0.08, now + idx * 0.07);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.15);
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            osc.start(now + idx * 0.07);
+            osc.stop(now + idx * 0.07 + 0.2);
+          });
+        }
+        else if (type === 'win_game') {
+          // Long triumph fan-fare
+          const song = [
+            { f: 523.25, t: 0.0 }, // C5
+            { f: 659.25, t: 0.15 }, // E5
+            { f: 783.99, t: 0.3 }, // G5
+            { f: 1046.50, t: 0.45 }, // C6
+            { f: 880.00, t: 0.6 }, // A5
+            { f: 1046.50, t: 0.75 }, // C6
+            { f: 1174.66, t: 0.90, d: 0.6 } // D6
+          ];
+          song.forEach(s => {
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(s.f, now + s.t);
+            const duration = s.d || 0.15;
+            gainNode.gain.setValueAtTime(0.08, now + s.t);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + s.t + duration);
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            osc.start(now + s.t);
+            osc.stop(now + s.t + duration + 0.05);
+          });
+        }
+        else if (type === 'lose') {
+          // Sad descending melody
+          const notes = [293.66, 261.63, 220.00, 146.83]; // D4, C4, A3, D3
+          notes.forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+            gainNode.gain.setValueAtTime(0.08, now + idx * 0.12);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.25);
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            osc.start(now + idx * 0.12);
+            osc.stop(now + idx * 0.12 + 0.3);
+          });
+        }
+      } catch (e) {
+        console.warn("Audio Synthesizer blocked or unsupported:", e);
+      }
+    }
+
+    // Toggle Sound Button
+    const soundBtn = document.getElementById('sound-toggle');
+    soundBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      soundMuted = !soundMuted;
+      soundBtn.innerText = `SOUND: ${soundMuted ? 'OFF' : 'ON'}`;
+      soundBtn.style.borderColor = soundMuted ? '#e53935' : '#ff4081';
+      soundBtn.style.color = soundMuted ? '#e53935' : '#880e4f';
+      initAudio();
+    });
+
+    // --- INPUT HANDLING ---
+    const keys = {};
+    let touchMoveTarget = null;
+    const activeTouchDirs = {};
+
+    function resetInputState() {
+      for (let key in keys) {
+        keys[key] = false;
+      }
+      for (let dir in activeTouchDirs) {
+        activeTouchDirs[dir] = false;
+      }
+      touchMoveTarget = null;
+    }
+
+    function focusCanvas() {
+      try {
+        canvas.focus({ preventScroll: true });
+      } catch (error) {
+        canvas.focus();
+      }
+    }
+
+    // Make canvas focusable so keypresses are guaranteed to reach it
+    canvas.setAttribute('tabindex', '0');
+    canvas.style.outline = 'none';
+
+    const handleKeyDown = (e) => {
+      // Prevent scrolling for game controls
+      const preventCodes = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyW', 'KeyS', 'KeyA', 'KeyD'];
+      const preventKeys = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'w', 's', 'a', 'd'];
+      
+      if (preventCodes.includes(e.code) || (e.key && preventKeys.includes(e.key.toLowerCase()))) {
+        e.preventDefault();
+      }
+      
+      if (e.code) keys[e.code] = true;
+      if (e.key) {
+        keys[e.key] = true;
+        keys[e.key.toLowerCase()] = true;
+        keys[e.key.toUpperCase()] = true;
+        
+        // Map common aliases
+        if (e.key.toLowerCase() === 'w' || e.key === 'ArrowUp') {
+          keys['KeyW'] = true; keys['ArrowUp'] = true;
+        }
+        if (e.key.toLowerCase() === 's' || e.key === 'ArrowDown') {
+          keys['KeyS'] = true; keys['ArrowDown'] = true;
+        }
+        if (e.key.toLowerCase() === 'a' || e.key === 'ArrowLeft') {
+          keys['KeyA'] = true; keys['ArrowLeft'] = true;
+        }
+        if (e.key.toLowerCase() === 'd' || e.key === 'ArrowRight') {
+          keys['KeyD'] = true; keys['ArrowRight'] = true;
+        }
+      }
+      if (e.keyCode) {
+        keys[e.keyCode] = true;
+        if (e.keyCode === 38 || e.keyCode === 87) { keys['ArrowUp'] = true; keys['KeyW'] = true; keys['w'] = true; keys['W'] = true; }
+        if (e.keyCode === 40 || e.keyCode === 83) { keys['ArrowDown'] = true; keys['KeyS'] = true; keys['s'] = true; keys['S'] = true; }
+        if (e.keyCode === 37 || e.keyCode === 65) { keys['ArrowLeft'] = true; keys['KeyA'] = true; keys['a'] = true; keys['A'] = true; }
+        if (e.keyCode === 39 || e.keyCode === 68) { keys['ArrowRight'] = true; keys['KeyD'] = true; keys['d'] = true; keys['D'] = true; }
+      }
+      
+      initAudio(); // Activate audio on interaction
+    };
+
+    const handleKeyUp = (e) => {
+      if (e.code) keys[e.code] = false;
+      if (e.key) {
+        keys[e.key] = false;
+        keys[e.key.toLowerCase()] = false;
+        keys[e.key.toUpperCase()] = false;
+        
+        // Map common aliases
+        if (e.key.toLowerCase() === 'w' || e.key === 'ArrowUp') {
+          keys['KeyW'] = false; keys['ArrowUp'] = false;
+        }
+        if (e.key.toLowerCase() === 's' || e.key === 'ArrowDown') {
+          keys['KeyS'] = false; keys['ArrowDown'] = false;
+        }
+        if (e.key.toLowerCase() === 'a' || e.key === 'ArrowLeft') {
+          keys['KeyA'] = false; keys['ArrowLeft'] = false;
+        }
+        if (e.key.toLowerCase() === 'd' || e.key === 'ArrowRight') {
+          keys['KeyD'] = false; keys['ArrowRight'] = false;
+        }
+      }
+      if (e.keyCode) {
+        keys[e.keyCode] = false;
+        if (e.keyCode === 38 || e.keyCode === 87) { keys['ArrowUp'] = false; keys['KeyW'] = false; keys['w'] = false; keys['W'] = false; }
+        if (e.keyCode === 40 || e.keyCode === 83) { keys['ArrowDown'] = false; keys['KeyS'] = false; keys['s'] = false; keys['S'] = false; }
+        if (e.keyCode === 37 || e.keyCode === 65) { keys['ArrowLeft'] = false; keys['KeyA'] = false; keys['a'] = false; keys['A'] = false; }
+        if (e.keyCode === 39 || e.keyCode === 68) { keys['ArrowRight'] = false; keys['KeyD'] = false; keys['d'] = false; keys['D'] = false; }
+      }
+    };
+
+    // Register on all three levels to ensure events are captured no matter what
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keyup', handleKeyUp);
+    canvas.addEventListener('keydown', handleKeyDown);
+    canvas.addEventListener('keyup', handleKeyUp);
+
+    // Reset controls on window blur to avoid endless running
+    window.addEventListener('blur', resetInputState);
+
+    // Mobile buttons with Mouse Support for hybrid laptop/screens
+    const dpadButtons = document.querySelectorAll('.dpad-btn');
+    const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (isTouchDevice) {
+      dpad.style.display = 'block';
+    }
+
+    dpadButtons.forEach(btn => {
+      const dir = btn.getAttribute('data-dir');
+      
+      const handlePress = (e) => {
+        e.preventDefault();
+        canvas.focus();
+        initAudio();
+        activeTouchDirs[dir] = true;
+      };
+      
+      const handleRelease = (e) => {
+        e.preventDefault();
+        activeTouchDirs[dir] = false;
+      };
+
+      // Touch events
+      btn.addEventListener('touchstart', handlePress, { passive: false });
+      btn.addEventListener('touchend', handleRelease, { passive: false });
+      btn.addEventListener('touchcancel', handleRelease, { passive: false });
+      
+      // Mouse events (for touch devices/laptops with touch and mouse)
+      btn.addEventListener('mousedown', handlePress);
+      btn.addEventListener('mouseup', handleRelease);
+      btn.addEventListener('mouseleave', handleRelease);
+    });
+
+    // Click anywhere on document to focus the canvas (essential fallback for iframe/sandbox contexts)
+    document.addEventListener('pointerdown', focusCanvas);
+
+    // Tap/Click on canvas to move directly (Highly intuitive child-friendly backup control!)
+    canvas.addEventListener('pointerdown', (e) => {
+      focusCanvas(); // Force focus to canvas
+      if (gameState !== 'PLAY') return;
+      
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+      
+      // Translate to world coordinates
+      const worldX = clickX + camera.x;
+      const worldY = clickY + camera.y;
+      
+      touchMoveTarget = { x: worldX, y: worldY };
+      initAudio();
+    });
+// --- CAMERA ENGINE ---
+    const camera = {
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+      update: function(targetX, targetY, totalWidth, totalHeight) {
+        // Linear Interpolation following the player
+        const targetCamX = targetX - this.width / 2;
+        const targetCamY = targetY - this.height / 2;
+        this.x += (targetCamX - this.x) * 0.12;
+        this.y += (targetCamY - this.y) * 0.12;
+
+        // Clamp to world boundaries
+        this.x = Math.max(0, Math.min(totalWidth - this.width, this.x));
+        this.y = Math.max(0, Math.min(totalHeight - this.height, this.y));
+      }
+    };
+
+    // --- CHEETAH PLAYER ---
+    const cheetah = {
+      x: TILE_SIZE * 1.5,
+      y: TILE_SIZE * 1.5,
+      vx: 0,
+      vy: 0,
+      speed: 5.5,
+      radius: 16,
+      faceDir: 'right',
+      hopTimer: 0,
+      trappedTimer: 0, // freezes player when > 0
+      isMoving: false,
+
+      update: function(grid) {
+        if (this.trappedTimer > 0) {
+          this.trappedTimer--;
+          this.vx = 0;
+          this.vy = 0;
+          this.isMoving = false;
+          touchMoveTarget = null;
+          return;
+        }
+
+        // 1. Get keyboard, touch D-pad, and tap-to-move inputs
+        let dx = 0;
+        let dy = 0;
+
+        let hasActiveKeyboardOrDpad = 
+          keys['ArrowUp'] || keys['KeyW'] || keys['w'] || keys['W'] || keys[38] || keys[87] || activeTouchDirs['up'] ||
+          keys['ArrowDown'] || keys['KeyS'] || keys['s'] || keys['S'] || keys[40] || keys[83] || activeTouchDirs['down'] ||
+          keys['ArrowLeft'] || keys['KeyA'] || keys['a'] || keys['A'] || keys[37] || keys[65] || activeTouchDirs['left'] ||
+          keys['ArrowRight'] || keys['KeyD'] || keys['d'] || keys['D'] || keys[39] || keys[68] || activeTouchDirs['right'];
+
+        if (hasActiveKeyboardOrDpad) {
+          touchMoveTarget = null; // Keyboard/Dpad overrides tap-to-move
+          
+          if (keys['ArrowUp'] || keys['KeyW'] || keys['w'] || keys['W'] || keys[38] || keys[87] || activeTouchDirs['up']) dy -= 1;
+          if (keys['ArrowDown'] || keys['KeyS'] || keys['s'] || keys['S'] || keys[40] || keys[83] || activeTouchDirs['down']) dy += 1;
+          if (keys['ArrowLeft'] || keys['KeyA'] || keys['a'] || keys['A'] || keys[37] || keys[65] || activeTouchDirs['left']) dx -= 1;
+          if (keys['ArrowRight'] || keys['KeyD'] || keys['d'] || keys['D'] || keys[39] || keys[68] || activeTouchDirs['right']) dx += 1;
+        } else if (touchMoveTarget) {
+          // Move towards touch target
+          const tdx = touchMoveTarget.x - this.x;
+          const tdy = touchMoveTarget.y - this.y;
+          const tdist = Math.hypot(tdx, tdy);
+          
+          if (tdist > 8) {
+            dx = tdx / tdist;
+            dy = tdy / tdist;
+          } else {
+            touchMoveTarget = null; // Arrived
+          }
+        }
+
+        // Normalize vector so diagonal speed is not boosted
+        const len = Math.hypot(dx, dy);
+        if (len > 0) {
+          dx /= len;
+          dy /= len;
+          this.isMoving = true;
+        } else {
+          this.isMoving = false;
+        }
+
+        // Apply acceleration & friction
+        const accel = 0.6;
+        const friction = 0.8;
+        this.vx += dx * accel;
+        this.vy += dy * accel;
+        this.vx *= friction;
+        this.vy *= friction;
+
+        // Update positions (x first, then resolve x collisions, then y, then resolve y)
+        this.x += this.vx * this.speed;
+        this.resolveCollisions(grid, 'x');
+
+        this.y += this.vy * this.speed;
+        this.resolveCollisions(grid, 'y');
+
+        // Direction facing flip
+        if (dx < -0.1) this.faceDir = 'left';
+        if (dx > 0.1) this.faceDir = 'right';
+
+        if (this.hopTimer > 0) this.hopTimer--;
+      },
+
+      resolveCollisions: function(grid, axis) {
+        // Bound checks to prevent out-of-grid errors
+        const maxCol = grid[0].length;
+        const maxRow = grid.length;
+
+        // Bounding circle coordinates for 4 corners of cheetah
+        const checkPoints = [
+          { x: this.x - this.radius, y: this.y - this.radius },
+          { x: this.x + this.radius, y: this.y - this.radius },
+          { x: this.x - this.radius, y: this.y + this.radius },
+          { x: this.x + this.radius, y: this.y + this.radius }
+        ];
+
+        checkPoints.forEach(p => {
+          const col = Math.floor(p.x / TILE_SIZE);
+          const row = Math.floor(p.y / TILE_SIZE);
+
+          if (col >= 0 && col < maxCol && row >= 0 && row < maxRow) {
+            const tileVal = grid[row][col];
+            // Solid objects: 1 (Hedges). 
+            // 7 is Laser Gate, which acts as a wall if gates are closed.
+            let isWall = (tileVal === 1);
+            if (tileVal === 7 && !laserGatesOpen) {
+              isWall = true;
+            }
+
+            if (isWall) {
+              // Resolve collision based on moving axis
+              if (axis === 'x') {
+                if (this.vx > 0) {
+                  // Moving right, push left
+                  this.x = col * TILE_SIZE - this.radius - 0.1;
+                } else if (this.vx < 0) {
+                  // Moving left, push right
+                  this.x = (col + 1) * TILE_SIZE + this.radius + 0.1;
+                }
+              } else {
+                if (this.vy > 0) {
+                  // Moving down, push up
+                  this.y = row * TILE_SIZE - this.radius - 0.1;
+                } else if (this.vy < 0) {
+                  // Moving up, push down
+                  this.y = (row + 1) * TILE_SIZE + this.radius + 0.1;
+                }
+              }
+            }
+          }
+        });
+      },
+
+      triggerHop: function() {
+        this.hopTimer = 22;
+      }
+    };
+
+    // --- MAZE GENERATOR (Depth First Search with Braiding) ---
+    function generateMaze(width, height) {
+      // Create empty 2D array of walls (1)
+      let mazeGrid = [];
+      for (let r = 0; r < height; r++) {
+        mazeGrid[r] = [];
+        for (let c = 0; c < width; c++) {
+          mazeGrid[r][c] = 1;
+        }
+      }
+
+      // Generate paths recursively starting from (1,1)
+      let stack = [];
+      let startX = 1;
+      let startY = 1;
+      mazeGrid[startY][startX] = 0; // Empty Path
+      stack.push({ x: startX, y: startY });
+
+      while (stack.length > 0) {
+        let current = stack[stack.length - 1];
+        let neighbors = [];
+        let directions = [
+          { dx: 0, dy: -2 },
+          { dx: 2, dy: 0 },
+          { dx: 0, dy: 2 },
+          { dx: -2, dy: 0 }
+        ];
+
+        directions.forEach(dir => {
+          let nx = current.x + dir.dx;
+          let ny = current.y + dir.dy;
+          if (nx > 0 && nx < width - 1 && ny > 0 && ny < height - 1) {
+            if (mazeGrid[ny][nx] === 1) {
+              neighbors.push({ x: nx, y: ny, dir: dir });
+            }
+          }
+        });
+
+        if (neighbors.length > 0) {
+          // Select a random unvisited cell
+          let next = neighbors[Math.floor(Math.random() * neighbors.length)];
+          // Carve wall between current and next
+          mazeGrid[current.y + next.dir.dy / 2][current.x + next.dir.dx / 2] = 0;
+          mazeGrid[next.y][next.x] = 0;
+          stack.push({ x: next.x, y: next.y });
+        } else {
+          stack.pop();
+        }
+      }
+
+      // Braiding: Remove some random internal walls to introduce multiple paths and loops.
+      // This is essential to let a 7yo run away from zoo-keepers and not get trapped in dead-ends!
+      for (let r = 2; r < height - 2; r++) {
+        for (let c = 2; c < width - 2; c++) {
+          if (mazeGrid[r][c] === 1) {
+            // Check if removing creates horizontal or vertical loops
+            if (mazeGrid[r][c - 1] === 0 && mazeGrid[r][c + 1] === 0) {
+              if (Math.random() < 0.25) {
+                mazeGrid[r][c] = 0;
+              }
+            } else if (mazeGrid[r - 1][c] === 0 && mazeGrid[r + 1][c] === 0) {
+              if (Math.random() < 0.25) {
+                mazeGrid[r][c] = 0;
+              }
+            }
+          }
+        }
+      }
+
+      // Level 3 Special: Place 4-6 Moving Laser Gates (value 7) in corridors
+      if (currentLevel === 3) {
+        let gateCount = 0;
+        let attempts = 0;
+        while (gateCount < 5 && attempts < 100) {
+          attempts++;
+          let gx = Math.floor(Math.random() * (width - 4)) + 2;
+          let gy = Math.floor(Math.random() * (height - 4)) + 2;
+          // Must replace an active carved path that connects two other paths
+          if (mazeGrid[gy][gx] === 0 && !(gx === 1 && gy === 1) && !(gx === width - 2 && gy === height - 2)) {
+            let leftRight = mazeGrid[gy][gx - 1] === 0 && mazeGrid[gy][gx + 1] === 0;
+            let upDown = mazeGrid[gy - 1][gx] === 0 && mazeGrid[gy + 1][gx] === 0;
+            if (leftRight || upDown) {
+              mazeGrid[gy][gx] = 7; // laser gate tile!
+              gateCount++;
+            }
+          }
+        }
+      }
+
+      // Set Player Spawn (2)
+      mazeGrid[1][1] = 2;
+      // Set Zoo Exit Gate (3) at bottom-right corner
+      mazeGrid[height - 2][width - 2] = 3;
+
+      return mazeGrid;
+    }
+
+    // --- BFS PATHFINDER FOR ZOO-KEEPERS ---
+    function findPath(start, target) {
+      if (start.x === target.x && start.y === target.y) return null;
+
+      let queue = [{ x: start.x, y: start.y, path: [] }];
+      let visited = new Set();
+      visited.add(`${start.x},${start.y}`);
+
+      const dirs = [
+        { dx: 0, dy: -1 },
+        { dx: 1, dy: 0 },
+        { dx: 0, dy: 1 },
+        { dx: -1, dy: 0 }
+      ];
+
+      while (queue.length > 0) {
+        let curr = queue.shift();
+
+        if (curr.x === target.x && curr.y === target.y) {
+          return curr.path[0] || null; // Next tile coordinates to step towards
+        }
+
+        for (let d of dirs) {
+          let nx = curr.x + d.dx;
+          let ny = curr.y + d.dy;
+
+          if (nx >= 0 && nx < mazeWidth && ny >= 0 && ny < mazeHeight) {
+            const val = grid[ny][nx];
+            // Walkable if it's path (0), spawn (2), exit (3), or laser gate (7) when OPEN
+            let walkable = (val !== 1);
+            if (val === 7 && !laserGatesOpen) {
+              walkable = false;
+            }
+
+            if (walkable) {
+              let key = `${nx},${ny}`;
+              if (!visited.has(key)) {
+                visited.add(key);
+                queue.push({
+                  x: nx,
+                  y: ny,
+                  path: [...curr.path, { x: nx, y: ny }]
+                });
+              }
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    // --- ZOO KEEPER CLASS ---
+    class Keeper {
+      constructor(gx, gy, speed) {
+        this.gridX = gx;
+        this.gridY = gy;
+        this.x = gx * TILE_SIZE + TILE_SIZE / 2;
+        this.y = gy * TILE_SIZE + TILE_SIZE / 2;
+        this.targetGridX = gx;
+        this.targetGridY = gy;
+        this.speed = speed;
+        this.faceDir = 'down';
+        this.spotTimer = 0;
+      }
+
+      update(playerGridX, playerGridY) {
+        let pixelTargetX = this.targetGridX * TILE_SIZE + TILE_SIZE / 2;
+        let pixelTargetY = this.targetGridY * TILE_SIZE + TILE_SIZE / 2;
+
+        let dx = pixelTargetX - this.x;
+        let dy = pixelTargetY - this.y;
+        let dist = Math.hypot(dx, dy);
+
+        if (dist <= this.speed) {
+          // Snap directly to center of current grid tile
+          this.x = pixelTargetX;
+          this.y = pixelTargetY;
+          this.gridX = this.targetGridX;
+          this.gridY = this.targetGridY;
+
+          // Call BFS to get next cell towards the Cheetah!
+          let nextTile = findPath({ x: this.gridX, y: this.gridY }, { x: playerGridX, y: playerGridY });
+          if (nextTile) {
+            this.targetGridX = nextTile.x;
+            this.targetGridY = nextTile.y;
+
+            // Set face animation directions
+            if (nextTile.x > this.gridX) this.faceDir = 'right';
+            else if (nextTile.x < this.gridX) this.faceDir = 'left';
+            else if (nextTile.y > this.gridY) this.faceDir = 'down';
+            else if (nextTile.y < this.gridY) this.faceDir = 'up';
+          }
+        } else {
+          // Slide towards target tile
+          this.x += (dx / dist) * this.speed;
+          this.y += (dy / dist) * this.speed;
+        }
+
+        if (this.spotTimer > 0) this.spotTimer--;
+      }
+
+      draw(c) {
+        c.save();
+        c.translate(this.x - camera.x, this.y - camera.y);
+
+        // Direction scale
+        if (this.faceDir === 'left') {
+          c.scale(-1, 1);
+        }
+
+        // Drop Shadow
+        c.fillStyle = 'rgba(0,0,0,0.2)';
+        c.beginPath();
+        c.ellipse(0, TILE_SIZE / 3, 14, 5, 0, 0, Math.PI * 2);
+        c.fill();
+
+        // Leg animations (swing back and forth)
+        let swing = Math.sin(Date.now() * 0.012) * 6;
+
+        // Safari Boots
+        c.fillStyle = '#5c4033'; // Brown
+        c.fillRect(-9, 14 + swing, 6, 6);
+        c.fillRect(3, 14 - swing, 6, 6);
+
+        // Safari Khaki Pants
+        c.fillStyle = '#eedc82'; // Khaki
+        c.fillRect(-9, 8, 6, 6);
+        c.fillRect(3, 8, 6, 6);
+
+        // Safari Green Shirt
+        c.fillStyle = '#2ecc71'; // Green jacket
+        c.fillRect(-12, -12, 24, 20);
+
+        // Safari belt
+        c.fillStyle = '#3e2723';
+        c.fillRect(-12, 4, 24, 4);
+        c.fillStyle = '#ffb300'; // buckle
+        c.fillRect(-2, 4, 4, 4);
+
+        // Face Skin Tone
+        c.fillStyle = '#ffdbac';
+        c.fillRect(-7, -24, 14, 12);
+
+        // Beard / Mustache
+        c.fillStyle = '#8d6e63';
+        c.fillRect(-5, -17, 10, 4);
+
+        // Angry Eyes
+        c.fillStyle = '#000000';
+        c.fillRect(-4, -21, 2, 2);
+        c.fillRect(2, -21, 2, 2);
+
+        // Angry Brow lines
+        c.strokeStyle = '#000';
+        c.lineWidth = 1.2;
+        c.beginPath();
+        c.moveTo(-5, -23); c.lineTo(-1, -21);
+        c.moveTo(5, -23); c.lineTo(1, -21);
+        c.stroke();
+
+        // Safari Hat (Khaki yellow-brown block)
+        c.fillStyle = '#eedc82'; // Brim
+        c.fillRect(-14, -26, 28, 3);
+        c.fillStyle = '#c7b15a'; // Cap top
+        c.fillRect(-9, -32, 18, 6);
+        c.fillStyle = '#b71c1c'; // Red band
+        c.fillRect(-9, -28, 18, 2);
+
+        c.restore();
+
+        // Exclamation Alert mark drawn above their head (in screen space coordinates)
+        if (this.spotTimer > 0) {
+          c.save();
+          c.translate(this.x - camera.x, this.y - camera.y);
+          c.fillStyle = '#e53935';
+          c.strokeStyle = '#ffffff';
+          c.lineWidth = 2;
+          c.beginPath();
+          c.rect(-3, -48, 6, 12);
+          c.rect(-3, -32, 6, 6);
+          c.fill();
+          c.stroke();
+          c.restore();
+        }
+      }
+    }
+
+    // --- TRAPS CLASS (Mud and Banana Peels) ---
+    class Trap {
+      constructor(gx, gy, type) {
+        this.gridX = gx;
+        this.gridY = gy;
+        this.x = gx * TILE_SIZE + TILE_SIZE / 2;
+        this.y = gy * TILE_SIZE + TILE_SIZE / 2;
+        this.type = type; // 'banana' or 'mud'
+        this.bounceOffset = Math.random() * Math.PI;
+      }
+
+      draw(c) {
+        let rx = this.x - camera.x;
+        let ry = this.y - camera.y;
+
+        // Calculate distance to Cheetah to implement "faintly visible/hidden" logic
+        let dist = Math.hypot(cheetah.x - this.x, cheetah.y - this.y);
+        
+        c.save();
+        // If cheetah is nearby, make it up to 40% visible. Otherwise, only 12% visible (faintly visible)
+        let alpha = 0.12;
+        if (dist < 150) {
+          alpha = 0.12 + (1 - dist / 150) * 0.28;
+        }
+        c.globalAlpha = alpha;
+
+        if (this.type === 'banana') {
+          // Hover up/down slightly
+          c.translate(rx, ry + Math.sin(Date.now() * 0.006 + this.bounceOffset) * 3);
+
+          // Shadow
+          c.fillStyle = 'rgba(0,0,0,0.08)';
+          c.beginPath();
+          c.ellipse(0, 8, 10, 3, 0, 0, Math.PI * 2);
+          c.fill();
+
+          // Peel shapes
+          c.fillStyle = '#ffeb3b'; // Banana yellow
+          c.fillRect(-6, 0, 12, 3); // middle
+          c.fillRect(-10, -3, 5, 3); // left leaf
+          c.fillRect(5, -3, 5, 3); // right leaf
+          c.fillStyle = '#f57f17'; // stem
+          c.fillRect(-2, -6, 4, 6);
+          c.fillStyle = '#5d4037'; // tip
+          c.fillRect(-2, -8, 4, 2);
+        } else {
+          // Mud pool
+          c.translate(rx, ry);
+
+          c.fillStyle = '#795548'; // Mud brown
+          c.beginPath();
+          c.ellipse(0, 0, 16, 11, 0, 0, Math.PI * 2);
+          c.fill();
+
+          // Darker mud bubbles
+          c.fillStyle = '#4e342e';
+          c.fillRect(-6, -3, 4, 3);
+          c.fillRect(3, 1, 6, 3);
+        }
+        c.restore();
+      }
+    }
+
+    // --- PARTICLE EFFECTS ---
+    class Particle {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 6;
+        this.vy = (Math.random() - 0.7) * 8 - 2; // initial pop-up velocity
+        this.size = Math.random() * 5 + 4;
+        this.color = color;
+        this.gravity = 0.22;
+        this.life = 1.0;
+        this.decay = Math.random() * 0.02 + 0.02;
+      }
+
+      update() {
+        this.x += this.vx;
+        this.vy += this.gravity;
+        this.y += this.vy;
+        this.life -= this.decay;
+      }
+
+      draw(c) {
+        c.save();
+        c.globalAlpha = this.life;
+        c.fillStyle = this.color;
+        c.fillRect(this.x - camera.x, this.y - camera.y, this.size, this.size);
+        c.restore();
+      }
+    }
+
+    class CelebrationConfetti {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = -10;
+        this.vx = (Math.random() - 0.5) * 5;
+        this.vy = Math.random() * 3 + 2.5;
+        this.size = Math.random() * 8 + 6;
+        const girlPalette = ['#ff4081', '#ff80ab', '#f50057', '#e040fb', '#ffffff', '#ffeb3b', '#69f0ae'];
+        this.color = girlPalette[Math.floor(Math.random() * girlPalette.length)];
+        this.angle = Math.random() * Math.PI;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.08;
+      }
+
+      update() {
+        this.x += this.vx + Math.sin(Date.now() * 0.005) * 0.5;
+        this.y += this.vy;
+        this.angle += this.rotationSpeed;
+      }
+
+      draw(c) {
+        c.save();
+        c.translate(this.x, this.y);
+        c.rotate(this.angle);
+        c.fillStyle = this.color;
+        // hearts or stars look
+        c.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+        c.restore();
+      }
+    }
+
+    function spawnExplosion(x, y, palette) {
+      for (let i = 0; i < 20; i++) {
+        const color = palette[Math.floor(Math.random() * palette.length)];
+        particles.push(new Particle(x, y, color));
+      }
+    }
+
+    // --- FLOATING TEXT ---
+    function spawnFloatingText(x, y, text, color) {
+      floatingTexts.push({
+        x: x,
+        y: y,
+        text: text,
+        color: color,
+        life: 1.0,
+        vy: -1.2
+      });
+    }
+
+    // --- LEVEL SPINNER & RESET ENGINE ---
+    function loadLevel(lvl) {
+      currentLevel = lvl;
+      levelTimer = 60;
+      secondAccumulator = 0;
+      laserGatesOpen = false;
+      laserGateTimer = 0;
+      closeCall = false;
+
+      // Update Top HUD
+      document.getElementById('level-text').innerText = `LEVEL: ${currentLevel}/3`;
+      document.getElementById('status-text').innerText = `STATUS: RUNNING`;
+      document.getElementById('status-panel').style.borderColor = '#ff4081';
+      document.getElementById('status-panel').style.color = '#880e4f';
+
+      // Scaling Difficulty Configuration
+      if (currentLevel === 1) {
+        mazeWidth = 11;
+        mazeHeight = 11;
+      } else if (currentLevel === 2) {
+        mazeWidth = 15;
+        mazeHeight = 15;
+      } else {
+        mazeWidth = 19;
+        mazeHeight = 19;
+      }
+
+      // 1. Generate the grid
+      grid = generateMaze(mazeWidth, mazeHeight);
+
+      // 2. Set Cheetah Start
+      cheetah.x = TILE_SIZE * 1.5;
+      cheetah.y = TILE_SIZE * 1.5;
+      cheetah.vx = 0;
+      cheetah.vy = 0;
+      cheetah.trappedTimer = 0;
+      cheetah.faceDir = 'right';
+
+      // Adjust camera immediately
+      camera.x = cheetah.x - camera.width / 2;
+      camera.y = cheetah.y - camera.height / 2;
+
+      // 3. Clear and Spawn Keepers
+      keepers = [];
+      let keeperSpeed = currentLevel === 1 ? 1.5 : currentLevel === 2 ? 1.8 : 2.1;
+      let keeperCount = currentLevel === 1 ? 1 : currentLevel === 2 ? 2 : 3;
+
+      // Spawn keepers in pathways far away from the start
+      let spawnCells = [];
+      for (let r = 2; r < mazeHeight - 1; r++) {
+        for (let c = 2; c < mazeWidth - 1; c++) {
+          if (grid[r][c] === 0 && Math.hypot(c - 1, r - 1) > 5) {
+            spawnCells.push({ x: c, y: r });
+          }
+        }
+      }
+
+      // Shufflespawn cells
+      spawnCells.sort(() => Math.random() - 0.5);
+      for (let i = 0; i < Math.min(keeperCount, spawnCells.length); i++) {
+        let cell = spawnCells[i];
+        keepers.push(new Keeper(cell.x, cell.y, keeperSpeed));
+      }
+
+      // 4. Spawn Traps (Mud, Banana)
+      traps = [];
+      let trapCount = currentLevel === 1 ? 2 : currentLevel === 2 ? 4 : 6;
+      let trapSpawnCells = [];
+      for (let r = 2; r < mazeHeight - 1; r++) {
+        for (let c = 2; c < mazeWidth - 1; c++) {
+          // Path must be 0, not near player start, not near keeper spawns
+          if (grid[r][c] === 0 && Math.hypot(c - 1, r - 1) > 3) {
+            let matchesKeeper = keepers.some(k => k.gridX === c && k.gridY === r);
+            if (!matchesKeeper) {
+              trapSpawnCells.push({ x: c, y: r });
+            }
+          }
+        }
+      }
+
+      trapSpawnCells.sort(() => Math.random() - 0.5);
+      for (let i = 0; i < Math.min(trapCount, trapSpawnCells.length); i++) {
+        let cell = trapSpawnCells[i];
+        let type = Math.random() < 0.5 ? 'banana' : 'mud';
+        traps.push(new Trap(cell.x, cell.y, type));
+      }
+
+      // 5. Clear VFX lists
+      particles = [];
+      floatingTexts = [];
+      touchMoveTarget = null; // Clear tap-to-move target on load
+
+      playSound('alert');
+    }
+
+    // --- GAME RENDERING ---
+
+    function drawGridFloor() {
+      if (!Array.isArray(grid) || grid.length === 0) {
+        return;
+      }
+
+      // Draw path and boundary walls using active culling
+      const startCol = Math.max(0, Math.floor(camera.x / TILE_SIZE));
+      const endCol = Math.min(mazeWidth - 1, Math.floor((camera.x + camera.width) / TILE_SIZE));
+      const startRow = Math.max(0, Math.floor(camera.y / TILE_SIZE));
+      const endRow = Math.min(mazeHeight - 1, Math.floor((camera.y + camera.height) / TILE_SIZE));
+
+      for (let row = startRow; row <= endRow; row++) {
+        for (let col = startCol; col <= endCol; col++) {
+          const rx = col * TILE_SIZE;
+          const ry = row * TILE_SIZE;
+          const val = grid[row][col];
+
+          if (val === 1) {
+            // Solid Hedge Wall
+            drawHedgeWall(rx, ry);
+          } else if (val === 7) {
+            // Laser gate (Level 3 moving walls)
+            drawPathTile(rx, ry, row, col);
+            drawLaserGate(rx, ry);
+          } else if (val === 3) {
+            // ZOO EXIT Gate
+            drawPathTile(rx, ry, row, col);
+            drawExitGate(rx, ry);
+          } else {
+            // Empty Paths, Player, Keepers, Traps (represented on path)
+            drawPathTile(rx, ry, row, col);
+          }
+        }
+      }
+    }
+
+    function drawPathTile(bx, by, row, col) {
+      // Soft cream pink/yellow paths
+      ctx.fillStyle = '#fce4ec'; 
+      ctx.fillRect(bx - camera.x, by - camera.y, TILE_SIZE, TILE_SIZE);
+
+      // Light brick floor accents
+      ctx.fillStyle = '#f8bbd0'; 
+      ctx.fillRect(bx + 12 - camera.x, by + 18 - camera.y, 16, 6);
+      ctx.fillRect(bx + 36 - camera.x, by + 42 - camera.y, 20, 6);
+
+      // Small pixel dandelions/flowers on paths
+      if ((row + col) % 3 === 0) {
+        ctx.fillStyle = '#ff80ab'; // pink highlight dot
+        ctx.fillRect(bx + 8 - camera.x, by + 32 - camera.y, 4, 4);
+        ctx.fillStyle = '#f1c40f'; // yellow dot
+        ctx.fillRect(bx + 48 - camera.x, by + 20 - camera.y, 4, 4);
+      }
+    }
+
+    function drawHedgeWall(bx, by) {
+      // Deep Emerald Green block representing zoo hedge wall
+      ctx.fillStyle = '#2ecc71'; 
+      ctx.fillRect(bx - camera.x, by - camera.y, TILE_SIZE, TILE_SIZE);
+
+      // Dark leaf clusters for depth
+      ctx.fillStyle = '#27ae60'; 
+      ctx.fillRect(bx + 6 - camera.x, by + 6 - camera.y, 14, 14);
+      ctx.fillRect(bx + 32 - camera.x, by + 12 - camera.y, 22, 14);
+      ctx.fillRect(bx + 12 - camera.x, by + 38 - camera.y, 14, 14);
+      ctx.fillRect(bx + 38 - camera.x, by + 32 - camera.y, 18, 22);
+
+      // Light neon green leaf highlights
+      ctx.fillStyle = '#58d68d'; 
+      ctx.fillRect(bx + 12 - camera.x, by + 6 - camera.y, 6, 6);
+      ctx.fillRect(bx + 38 - camera.x, by + 12 - camera.y, 6, 6);
+      ctx.fillRect(bx + 12 - camera.x, by + 38 - camera.y, 6, 6);
+
+      // Cute pink flowers on the hedge to match pink aesthetics
+      ctx.fillStyle = '#ff4081'; 
+      ctx.fillRect(bx + 10 - camera.x, by + 20 - camera.y, 5, 5);
+      ctx.fillRect(bx + 36 - camera.x, by + 40 - camera.y, 5, 5);
+      ctx.fillRect(bx + 44 - camera.x, by + 10 - camera.y, 5, 5);
+
+      ctx.fillStyle = '#ffeb3b'; // center yellow star
+      ctx.fillRect(bx + 11 - camera.x, by + 21 - camera.y, 3, 3);
+      ctx.fillRect(bx + 37 - camera.x, by + 41 - camera.y, 3, 3);
+      ctx.fillRect(bx + 45 - camera.x, by + 11 - camera.y, 3, 3);
+
+      // Block outline
+      ctx.strokeStyle = '#1b5e20';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(bx - camera.x, by - camera.y, TILE_SIZE, TILE_SIZE);
+    }
+
+    function drawExitGate(bx, by) {
+      // Golden brick exit border
+      ctx.fillStyle = '#ffca28';
+      ctx.fillRect(bx - camera.x, by - camera.y, TILE_SIZE, TILE_SIZE);
+
+      // Glowing pink portal core
+      let glow = Math.sin(Date.now() * 0.008) * 0.2 + 0.8;
+      ctx.fillStyle = `rgba(255, 64, 129, ${0.4 + glow * 0.3})`;
+      ctx.fillRect(bx + 6 - camera.x, by + 6 - camera.y, TILE_SIZE - 12, TILE_SIZE - 12);
+
+      // Double wooden gate frames
+      ctx.fillStyle = '#8d6e63'; 
+      ctx.fillRect(bx + 10 - camera.x, by + 10 - camera.y, 18, TILE_SIZE - 20);
+      ctx.fillRect(bx + 36 - camera.x, by + 10 - camera.y, 18, TILE_SIZE - 20);
+
+      // Golden locks
+      ctx.fillStyle = '#ffb300';
+      ctx.fillRect(bx + 22 - camera.x, by + 28 - camera.y, 4, 8);
+      ctx.fillRect(bx + 38 - camera.x, by + 28 - camera.y, 4, 8);
+
+      // Outline
+      ctx.strokeStyle = '#ff8f00';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(bx - camera.x, by - camera.y, TILE_SIZE, TILE_SIZE);
+
+      // Exit sign text floating above gate
+      ctx.save();
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#880e4f';
+      ctx.lineWidth = 3;
+      ctx.font = "bold 9px 'Press Start 2P'";
+      ctx.textAlign = "center";
+      let textFloat = Math.sin(Date.now() * 0.006) * 3;
+      ctx.strokeText("ZOO EXIT", bx + TILE_SIZE/2 - camera.x, by - 10 + textFloat - camera.y);
+      ctx.fillText("ZOO EXIT", bx + TILE_SIZE/2 - camera.x, by - 10 + textFloat - camera.y);
+      ctx.restore();
+    }
+
+    function drawLaserGate(bx, by) {
+      // Side posts
+      ctx.fillStyle = '#5d6d7e';
+      ctx.fillRect(bx - camera.x, by - camera.y, 10, TILE_SIZE);
+      ctx.fillRect(bx + TILE_SIZE - 10 - camera.x, by - camera.y, 10, TILE_SIZE);
+
+      if (!laserGatesOpen) {
+        // Red closed laser beams
+        let glow = Math.sin(Date.now() * 0.02) * 0.3 + 0.7;
+        ctx.fillStyle = `rgba(229, 57, 53, ${glow})`; // Intense red
+        ctx.fillRect(bx + 10 - camera.x, by + 20 - camera.y, TILE_SIZE - 20, 8);
+        ctx.fillRect(bx + 10 - camera.x, by + 40 - camera.y, TILE_SIZE - 20, 8);
+
+        // White hot center line
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(bx + 14 - camera.x, by + 22 - camera.y, TILE_SIZE - 28, 4);
+        ctx.fillRect(bx + 14 - camera.x, by + 42 - camera.y, TILE_SIZE - 28, 4);
+
+        // Sparks
+        if (Math.random() < 0.2) {
+          particles.push(new Particle(
+            bx + 12 + Math.random() * (TILE_SIZE - 24),
+            by + 16 + Math.random() * 32,
+            '#e53935'
+          ));
+        }
+      } else {
+        // Safe green pulsing aura
+        ctx.fillStyle = 'rgba(105, 240, 174, 0.12)';
+        ctx.fillRect(bx + 10 - camera.x, by + 10 - camera.y, TILE_SIZE - 20, TILE_SIZE - 20);
+      }
+    }
+
+    // --- MAIN GAME LOOP ---
+    function gameLoop(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      const deltaTime = (timestamp - lastTime) / 1000;
+      lastTime = timestamp;
+
+      update(deltaTime);
+      render();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // --- GAME STATE LOGIC ---
+    function update(dt) {
+      // Start screen background panning
+      if (gameState === 'START') {
+        let fakeWorldSize = 13 * TILE_SIZE;
+        camera.x = (fakeWorldSize / 2 - camera.width / 2) + Math.sin(Date.now() * 0.0003) * 100;
+        camera.y = (fakeWorldSize / 2 - camera.height / 2) + Math.cos(Date.now() * 0.0003) * 100;
+        return;
+      }
+
+      if (gameState !== 'PLAY') {
+        // Update particles only (for the win screens confetti)
+        particles.forEach(p => p.update());
+        particles = particles.filter(p => p.life > 0 || p.y < canvas.height + 20);
+        return;
+      }
+
+      // 1. Level timer ticker
+      secondAccumulator += dt;
+      if (secondAccumulator >= 1.0) {
+        secondAccumulator -= 1.0;
+        if (levelTimer > 0) {
+          levelTimer--;
+          document.getElementById('timer-text').innerText = `TIME: ${levelTimer}s`;
+
+          // Low time indicators
+          if (levelTimer <= 10) {
+            document.getElementById('timer-panel').classList.add('warning');
+            playSound('tick');
+          } else {
+            document.getElementById('timer-panel').classList.remove('warning');
+          }
+        } else {
+          // Time's up! Game lost
+          triggerLose();
+        }
+      }
+
+      // 2. Level 3 Laser Gate triggers
+      if (currentLevel === 3) {
+        laserGateTimer += dt;
+        if (laserGateTimer >= 2.5) { // Toggles every 2.5 seconds
+          laserGateTimer = 0;
+          laserGatesOpen = !laserGatesOpen;
+          spawnExplosion(TILE_SIZE * 9, TILE_SIZE * 9, ['#e53935', '#ffffff']); // soft spawn sparks
+        }
+      }
+
+      // 3. Update Cheetah
+      cheetah.update(grid);
+
+      // Player Grid coordinate
+      let pGridX = Math.floor(cheetah.x / TILE_SIZE);
+      let pGridY = Math.floor(cheetah.y / TILE_SIZE);
+
+      // 4. Update Keepers
+      closeCall = false;
+      keepers.forEach(k => {
+        k.update(pGridX, pGridY);
+
+        // Close Call Border Alert warning threshold
+        let pixelDist = Math.hypot(cheetah.x - k.x, cheetah.y - k.y);
+        if (pixelDist < 160) {
+          closeCall = true;
+        }
+
+        // Spotting FX trigger (if in direct line of sight or very close)
+        if (pixelDist < 180 && k.spotTimer === 0 && Math.random() < 0.04) {
+          k.spotTimer = 30; // Frames of warning sign
+          playSound('alert');
+        }
+
+        // Catch check: Lose if keeper touches cheetah
+        if (pixelDist < cheetah.radius + 15) {
+          triggerLose();
+        }
+      });
+
+      // 5. Update and overlap traps
+      traps.forEach((t, index) => {
+        let tDist = Math.hypot(cheetah.x - t.x, cheetah.y - t.y);
+        if (tDist < cheetah.radius + 12) {
+          // Trap triggered!
+          playSound('slip');
+          cheetah.trappedTimer = 90; // Freeze for 1.5s (90 frames at 60fps)
+          spawnExplosion(t.x, t.y, t.type === 'banana' ? ['#ffeb3b', '#ffffff'] : ['#795548', '#8d6e63']);
+          spawnFloatingText(t.x, t.y - 12, t.type === 'banana' ? "+Slipped! 🍌" : "+Stuck! 🌀", '#ff4081');
+
+          // Change status panel
+          document.getElementById('status-text').innerText = `STATUS: SLIPPED! 🌀`;
+          document.getElementById('status-panel').style.borderColor = '#e53935';
+          document.getElementById('status-panel').style.color = '#e53935';
+
+          // Remove trap
+          traps.splice(index, 1);
+        }
+      });
+
+      // Reset status when cheetah recovers
+      if (cheetah.trappedTimer === 0 && document.getElementById('status-text').innerText.includes('SLIPPED')) {
+        document.getElementById('status-text').innerText = `STATUS: RUNNING`;
+        document.getElementById('status-panel').style.borderColor = '#ff4081';
+        document.getElementById('status-panel').style.color = '#880e4f';
+      }
+
+      // 6. Check Win Level condition: Cheetah overlaps Exit Gate (Value 3)
+      let exitTileX = mazeWidth - 2;
+      let exitTileY = mazeHeight - 2;
+      let exitPixelX = exitTileX * TILE_SIZE + TILE_SIZE / 2;
+      let exitPixelY = exitTileY * TILE_SIZE + TILE_SIZE / 2;
+      let distToExit = Math.hypot(cheetah.x - exitPixelX, cheetah.y - exitPixelY);
+
+      if (distToExit < cheetah.radius + 24) {
+        triggerWinLevel();
+      }
+
+      // 7. Update escape progress bar
+      let startPixelX = TILE_SIZE * 1.5;
+      let startPixelY = TILE_SIZE * 1.5;
+      let totalDist = Math.hypot(startPixelX - exitPixelX, startPixelY - exitPixelY);
+      let progress = Math.max(0, Math.min(1, 1 - distToExit / totalDist));
+      document.getElementById('progress-fill').style.width = `${progress * 100}%`;
+      document.getElementById('progress-marker').style.left = `${progress * 100}%`;
+
+      // 8. Update Camera centered on player
+      camera.update(cheetah.x, cheetah.y, mazeWidth * TILE_SIZE, mazeHeight * TILE_SIZE);
+
+      // 9. Update particles and texts
+      particles.forEach(p => p.update());
+      particles = particles.filter(p => p.life > 0);
+
+      floatingTexts.forEach(t => {
+        t.y += t.vy;
+        t.life -= 0.025;
+      });
+      floatingTexts = floatingTexts.filter(t => t.life > 0);
+    }
+
+    function render() {
+      // Clear with soft baby green
+      ctx.fillStyle = '#81c784';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      // Draw Grid Hedges and paths
+      drawGridFloor();
+
+      // Draw Traps
+      traps.forEach(t => t.draw(ctx));
+
+      // Draw Zoo-keepers
+      keepers.forEach(k => k.draw(ctx));
+
+      // Draw Cheetah Player
+      drawCheetah(ctx);
+
+      // Draw Particles
+      particles.forEach(p => p.draw(ctx));
+
+      // Draw Floating texts
+      floatingTexts.forEach(t => {
+        ctx.save();
+        ctx.globalAlpha = t.life;
+        ctx.fillStyle = t.color;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3;
+        ctx.font = "bold 9px 'Press Start 2P'";
+        ctx.textAlign = 'center';
+        ctx.strokeText(t.text, t.x - camera.x, t.y - camera.y);
+        ctx.fillText(t.text, t.x - camera.x, t.y - camera.y);
+        ctx.restore();
+      });
+
+      ctx.restore();
+
+      // Render Full Screen Confetti for levels win celebration
+      if (gameState === 'LEVELCLEAR' || gameState === 'VICTORY') {
+        particles.forEach(p => {
+          if (p instanceof CelebrationConfetti) p.draw(ctx);
+        });
+      }
+
+      // Close Call Vignette Alert
+      if (gameState === 'PLAY' && closeCall) {
+        ctx.save();
+        let borderFlash = 0.2 + Math.sin(Date.now() * 0.01) * 0.15;
+        ctx.strokeStyle = `rgba(229, 57, 53, ${borderFlash})`;
+        ctx.lineWidth = 14;
+        ctx.strokeRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+      }
+    }
+
+    function drawCheetah(c) {
+      c.save();
+      c.translate(cheetah.x - camera.x, cheetah.y - camera.y);
+
+      // Jump / Hop offset
+      let hopY = 0;
+      if (cheetah.hopTimer > 0) {
+        let t = (22 - cheetah.hopTimer) / 22;
+        hopY = -Math.sin(t * Math.PI) * 25;
+      }
+      c.translate(0, hopY);
+
+      // Facing scale
+      let flipX = (cheetah.faceDir === 'left') ? -1 : 1;
+      c.scale(flipX, 1);
+
+      // Shadow on ground (fixed)
+      c.save();
+      c.scale(flipX, 1); // undo parent flip
+      c.fillStyle = 'rgba(0,0,0,0.2)';
+      let shadowScale = 1 - (hopY / -80);
+      c.beginPath();
+      c.ellipse(0, 14 - hopY, 18 * shadowScale, 5 * shadowScale, 0, 0, Math.PI * 2);
+      c.fill();
+      c.restore();
+
+      // Dizzy wobble
+      let rot = 0;
+      if (cheetah.trappedTimer > 0) {
+        rot = Math.sin(Date.now() * 0.035) * 0.2;
+      } else if (cheetah.isMoving) {
+        rot = Math.sin(Date.now() * 0.016) * 0.08;
+      }
+      c.rotate(rot);
+
+      // Cheetah body
+      c.fillStyle = '#ffb300'; // Cute yellow-orange base
+      c.fillRect(-16, -10, 28, 18);
+
+      // White underbelly
+      c.fillStyle = '#ffffff';
+      c.fillRect(-10, 3, 18, 5);
+
+      // Cheetah spots
+      c.fillStyle = '#3e2723'; // Dark brown spots
+      c.fillRect(-10, -5, 4, 4);
+      c.fillRect(-4, -2, 4, 4);
+      c.fillRect(4, -7, 4, 4);
+      c.fillRect(-12, 1, 4, 4);
+      c.fillRect(0, 3, 4, 4);
+
+      // Tail
+      c.save();
+      c.translate(-16, -4);
+      let tailWiggle = 0;
+      if (cheetah.trappedTimer > 0) {
+        tailWiggle = Math.sin(Date.now() * 0.04) * 0.15;
+      } else if (cheetah.isMoving) {
+        tailWiggle = Math.sin(Date.now() * 0.02) * 0.45;
+      }
+      c.rotate(-0.3 + tailWiggle);
+      c.fillStyle = '#ffb300';
+      c.fillRect(-12, -3, 12, 5);
+      c.fillStyle = '#3e2723'; // spot tip
+      c.fillRect(-12, -3, 4, 5);
+      c.restore();
+
+      // Leg swings
+      let swing = 0;
+      if (cheetah.isMoving && cheetah.trappedTimer === 0) {
+        swing = Math.sin(Date.now() * 0.015) * 10;
+      }
+
+      // Back set
+      c.fillStyle = '#e69900'; // darker shade
+      c.fillRect(-11, 8, 4, 9 + swing);
+      c.fillRect(3, 8, 4, 9 - swing);
+
+      // Front set
+      c.fillStyle = '#ffb300';
+      c.fillRect(-7, 8, 4, 9 - swing);
+      c.fillRect(7, 8, 4, 9 + swing);
+
+      // Neck & head
+      c.fillStyle = '#ffb300';
+      c.fillRect(8, -14, 8, 12);
+      c.fillStyle = '#3e2723'; // spot on neck
+      c.fillRect(10, -10, 3, 3);
+
+      c.fillRect(10, -22, 14, 12); // head block
+
+      // Snout
+      c.fillStyle = '#ffffff';
+      c.fillRect(18, -15, 7, 5);
+      c.fillStyle = '#000000'; // nose
+      c.fillRect(23, -15, 2, 2);
+
+      // Cute Pink ears
+      c.fillStyle = '#ffb300';
+      c.fillRect(12, -26, 4, 4);
+      c.fillStyle = '#ff80ab'; // pink interior
+      c.fillRect(13, -25, 2, 3);
+
+      // Eye
+      if (cheetah.trappedTimer > 0) {
+        // dizzy spiral eyes
+        c.strokeStyle = '#3e2723';
+        c.lineWidth = 1.5;
+        c.beginPath();
+        c.moveTo(17, -19); c.lineTo(21, -15);
+        c.moveTo(21, -19); c.lineTo(17, -15);
+        c.stroke();
+      } else {
+        // big cute anime/girl eyes
+        c.fillStyle = '#3e2723';
+        c.fillRect(17, -19, 4, 4);
+        c.fillStyle = '#ffffff'; // sparkle
+        c.fillRect(17, -19, 2, 2);
+      }
+
+      c.restore();
+
+      // Dizzy star orbits when trapped
+      if (cheetah.trappedTimer > 0) {
+        let stars = 3;
+        for (let i = 0; i < stars; i++) {
+          let orbAngle = (i * Math.PI * 2 / stars) + (Date.now() * 0.007);
+          let sx = cheetah.x + Math.cos(orbAngle) * 15 - camera.x;
+          let sy = cheetah.y + hopY - 30 + Math.sin(orbAngle * 2) * 3 - camera.y;
+
+          ctx.fillStyle = i % 2 === 0 ? '#ffeb3b' : '#ff80ab'; // yellow/pink orbits
+          ctx.fillRect(sx - 3, sy - 3, 5, 5);
+        }
+      }
+    }
+
+    // --- TRANSITIONS & END SCREENS ---
+
+    function triggerLose() {
+      gameState = 'GAMEOVER';
+      playSound('lose');
+      document.getElementById('gameover-screen').classList.remove('hidden');
+    }
+
+    function triggerWinLevel() {
+      gameState = 'LEVELCLEAR';
+      playSound('win_level');
+
+      // Spawn flying blocky confetti loop
+      for (let i = 0; i < 60; i++) {
+        particles.push(new CelebrationConfetti());
+      }
+
+      const praises = ["Super Fast!", "Speedy Queen! 👑", "Too Smart!", "Zoo Escape Master!", "Speed Demon! 🐆", "Unstoppable!"];
+      document.getElementById('praise-msg').innerText = praises[Math.floor(Math.random() * praises.length)];
+
+      if (currentLevel < 3) {
+        document.getElementById('level-clear-screen').classList.remove('hidden');
+      } else {
+        // Beaten all levels!
+        triggerGrandVictory();
+      }
+    }
+
+    function triggerGrandVictory() {
+      gameState = 'VICTORY';
+      playSound('win_game');
+      document.getElementById('victory-screen').classList.remove('hidden');
+
+      // Massive continuous confetti
+      setInterval(() => {
+        if (gameState === 'VICTORY') {
+          particles.push(new CelebrationConfetti());
+        }
+      }, 50);
+    }
+
+    // --- BTN INTERACTIVITY ---
+    function startGameAt(level) {
+      resetInputState();
+      document.getElementById('start-screen').classList.add('hidden');
+      document.getElementById('gameover-screen').classList.add('hidden');
+      document.getElementById('level-clear-screen').classList.add('hidden');
+      document.getElementById('victory-screen').classList.add('hidden');
+      gameState = 'PLAY';
+      loadLevel(level);
+      focusCanvas();
+    }
+
+    document.getElementById('start-btn').addEventListener('click', (e) => {
+      e.target.blur();
+      initAudio();
+      startGameAt(1);
+    });
+
+    document.getElementById('retry-btn').addEventListener('click', (e) => {
+      e.target.blur();
+      initAudio();
+      document.getElementById('gameover-screen').classList.add('hidden');
+      startGameAt(currentLevel); // restart same level
+    });
+
+    document.getElementById('level-clear-btn').addEventListener('click', (e) => {
+      e.target.blur();
+      initAudio();
+      startGameAt(currentLevel + 1);
+    });
+
+    document.getElementById('victory-btn').addEventListener('click', (e) => {
+      e.target.blur();
+      initAudio();
+      startGameAt(1); // restart back to level 1
+    });
+// --- RESPONSIVE CANVAS & AUTO SCALING ---
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      
+      let w = rect.width;
+      let h = rect.height;
+      
+      // Fallback for when the container is collapsed, hidden, or zero
+      if (w <= 0 || h <= 0) {
+        w = window.innerWidth;
+        h = window.innerHeight;
+      }
+      
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      
+      // Reset transform before scaling so repeated resizes don't compound.
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+      ctx.imageSmoothingEnabled = false;
+
+      camera.width = w;
+      camera.height = h;
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas(); // initial setup
+
+    resetInputState();
+    document.getElementById('start-screen').classList.remove('hidden');
+    document.getElementById('gameover-screen').classList.add('hidden');
+    document.getElementById('level-clear-screen').classList.add('hidden');
+    document.getElementById('victory-screen').classList.add('hidden');
+    document.getElementById('timer-text').innerText = 'TIME: 60s';
+    document.getElementById('status-text').innerText = 'STATUS: RUNNING';
+    document.getElementById('progress-fill').style.width = '0%';
+    document.getElementById('progress-marker').style.left = '0%';
+
+    // Start running the loop
+    requestAnimationFrame(gameLoop);
+
+  </script>
+</body>
+</html>
