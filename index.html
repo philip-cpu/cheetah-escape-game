@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cheetah's Great Zoo Escape!</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --pink: #ff4081;
+      --pink-soft: #f8bbd0;
+      --green: #2ecc71;
+      --text: #2c3e50;
+      --card: rgba(255,255,255,0.9);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, #fff4f8, transparent 35%),
+        linear-gradient(180deg, #fff9fb 0%, #f8bbd0 100%);
+      min-height: 100vh;
+    }
+
+    .shell {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 48px 20px 64px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 28px;
+      align-items: center;
+      padding: 24px 0 16px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.88);
+      border: 2px solid var(--pink);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-size: clamp(2.1rem, 2vw + 1.4rem, 2.8rem);
+      line-height: 1.1;
+      margin: 0 0 14px;
+    }
+
+    .subtitle {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      margin: 0 0 24px;
+    }
+
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .btn {
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 18px;
+      border-radius: 999px;
+      font-weight: 800;
+      border: 2px solid transparent;
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary {
+      background: var(--pink);
+      color: #fff;
+      box-shadow: 0 12px 30px rgba(255,64,129,0.25);
+    }
+
+    .btn-secondary {
+      background: #fff;
+      color: var(--text);
+      border-color: rgba(44,62,80,0.12);
+    }
+
+    .preview {
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,247,251,0.94));
+      border-radius: 28px;
+      padding: 18px;
+      border: 2px solid rgba(255,64,129,0.18);
+      box-shadow: 0 16px 40px rgba(255,64,129,0.12);
+    }
+
+    .preview-card {
+      border-radius: 24px;
+      background:
+        linear-gradient(180deg, rgba(129,199,132,0.95), rgba(129,199,132,0.82)),
+        repeating-linear-gradient(90deg, transparent 0 18px, rgba(255,255,255,0.12) 18px 36px);
+      height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview-card::after {
+      content: "🐆";
+      font-size: 4.5rem;
+      position: absolute;
+      bottom: 26px;
+      right: 26px;
+      opacity: 0.9;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 34px;
+    }
+
+    .feature {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 18px;
+      border: 1px solid rgba(44,62,80,0.08);
+    }
+
+    .feature h2 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+    }
+
+    .feature p {
+      margin: 0;
+      line-height: 1.65;
+      color: rgba(44,62,80,0.88);
+      font-size: 0.95rem;
+    }
+
+    .footer-note {
+      margin-top: 30px;
+      font-size: 0.92rem;
+      color: rgba(44,62,80,0.8);
+      text-align: center;
+    }
+
+    @media (max-width: 860px) {
+      .hero { grid-template-columns: 1fr; }
+      .features { grid-template-columns: 1fr; }
+      .preview-card { height: 260px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <div class="badge">✨ New game repo</div>
+        <h1>Cheetah's Great Zoo Escape!</h1>
+        <p class="subtitle">
+          A playful pixel-art maze game where you guide a speedy cheetah through the zoo, dodge keepers, and escape before the timer runs out.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="cheetah-escape.html">Play the game</a>
+          <a class="btn btn-secondary" href="https://github.com/philip-cpu/cheetah-escape-game">View source</a>
+        </div>
+      </div>
+      <div class="preview">
+        <div class="preview-card">
+          <span style="font-size: 1.05rem; font-weight: 800; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.2);">Run, dodge, escape!</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="feature">
+        <h2>🎮 Playable right away</h2>
+        <p>Open the game in your browser and start escaping in seconds.</p>
+      </div>
+      <div class="feature">
+        <h2>📱 Mobile friendly</h2>
+        <p>Keyboard controls and on-screen touch controls are included for quick play on phones and tablets.</p>
+      </div>
+      <div class="feature">
+        <h2>🚀 GitHub Pages ready</h2>
+        <p>A workflow is set up to publish the landing page and game automatically.</p>
+      </div>
+    </section>
+
+    <p class="footer-note">Built in plain HTML, CSS, and JavaScript so it stays easy to share and edit.</p>
+  </main>
+</body>
+</html>
